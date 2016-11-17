@@ -1,11 +1,15 @@
 import request from 'request-promise-native';
 import toMarkdown from 'to-markdown';
+import {findHookId} from './hookFinder';
 
 require('babel-polyfill');
 
 export async function hookProcessor(req, res, next) {
     console.log("Received update from JIRA");
-    let hookId = req.params.hookid;
+    let hookId = await findHookId(req.body);
+    if (!hookId) {
+        return res.end('hook not found');
+    }
     let webevent = req.body.webhookEvent;
     let issueID = req.body.issue.key;
     let issueRestUrl = req.body.issue.self;
@@ -66,7 +70,7 @@ async function postToServer(postContent, hookid) {
     const matterIconUrl = process.env.MATTERMOST_ICON_URL || 'https://design.atlassian.com/images/logo/favicon.png';
     const postData = '{"text": ' + JSON.stringify(postContent) + ', "username": "' + matterUsername + '", "icon_url": "' + matterIconUrl + '"}';
     console.log("Calling " + process.env.MATTERMOST_SERVER);
-    return await request.post(process.env.MATTERMOST_SERVER, { json: postData });
+    return await request.post(process.env.MATTERMOST_SERVER, {json: postData});
 }
 
 function toTitleCase(str) {
@@ -75,7 +79,6 @@ function toTitleCase(str) {
     });
 }
 
-function doConversion(str)
-{
+function doConversion(str) {
     return toMarkdown(str);
 }
